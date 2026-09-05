@@ -1,4 +1,4 @@
-"""텍스트를 벡터로 변환한다 (임베딩). (1-A 실제 구현 예정 - 현재는 골격만)
+"""텍스트를 벡터로 변환한다 (임베딩).
 
 임베딩(embedding)이란?
 텍스트의 의미를 고정 길이의 숫자 벡터로 바꾼 것. 의미가 비슷한 문장은
@@ -22,11 +22,38 @@ multilingual-e5 계열은 검색 품질을 위해 텍스트 앞에 접두사를 
 
 from __future__ import annotations
 
+from fastembed import TextEmbedding
+
+from app.config import settings
+
+# 모델 로딩(디스크에서 읽기 + 초기화)에 수 초가 걸리므로 프로세스당 한 번만 만들어 재사용한다.
+_model: TextEmbedding | None = None
+
+
+def _get_model() -> TextEmbedding:
+    global _model
+    if _model is None:
+        _model = TextEmbedding(
+            model_name=settings.embedding_model,
+            cache_dir=settings.embedding_cache_dir,
+        )
+    return _model
+
 
 def embed_passages(texts: list[str]) -> list[list[float]]:
-    """청크(문서) 텍스트들을 벡터로 변환한다. 내부적으로 "passage: " 접두사를 붙인다.
+    """청크(문서) 텍스트들을 벡터로 변환한다. 내부적으로 "passage: " 접두사를 붙인다."""
+    model = _get_model()
+    prefixed = [f"passage: {text}" for text in texts]
+    return [vector.tolist() for vector in model.embed(prefixed)]
 
-    질문 임베딩(embed_query, "query: " 접두사)은 1-B(검색) 단계에서 추가한다.
-    지금은 업로드->저장 파이프라인(1-A)만 다루므로 미리 만들지 않는다.
+
+def embed_query(text: str) -> list[float]:
+    """검색 질문을 벡터로 변환한다 (1-B). 내부적으로 "query: " 접두사를 붙인다.
+
+    저장할 때는 "passage: ", 검색할 때는 "query: " - 서로 다른 접두사를 쓰는 이유는
+    e5 모델이 두 역할(찾히는 문서 / 찾는 질문)을 벡터 공간에서 구분해 학습됐기 때문이다.
+    접두사를 섞어 쓰면(예: 질문에도 "passage: ") 검색 정확도가 떨어진다.
     """
-    raise NotImplementedError("1-A 구현 예정: fastembed TextEmbedding 적용")
+    model = _get_model()
+    vectors = list(model.embed([f"query: {text}"]))
+    return vectors[0].tolist()

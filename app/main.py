@@ -6,11 +6,13 @@ CORS 미들웨어는 추가하지 않는다 - 개발 중 프론트엔드(:5173)�
 
 from fastapi import FastAPI
 
+from app.api.search import router as search_router
 from app.api.upload import router as upload_router
 
 app = FastAPI(title="글로벌 ICT 동향 리포트 조회")
 
 app.include_router(upload_router)
+app.include_router(search_router)
 
 
 @app.get("/api/health")

@@ -26,5 +26,13 @@ class Settings(BaseSettings):
     chunk_size: int = 600
     chunk_overlap: int = 100
 
+    # 검색 결과 채택 임계값 (cosine distance 기준, 작을수록 유사).
+    # 최상위 결과의 distance가 이 값을 넘으면 "관련 문서 없음"으로 응답한다.
+    # 시작 값이며, 실제 검색 결과를 보고 조정한다.
+    search_distance_threshold: float = 0.5
+
+    # 검색 결과 기본 개수(top_k)
+    search_top_k: int = 5
+
 
 settings = Settings()
